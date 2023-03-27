@@ -21,59 +21,42 @@ class App extends Component {
     },
   };
 
-  submitHandle = (query) => {
-    this.setState({ query, page: this.state.page + 1, status: "pending" });
-    
-    fetch(
-      `${URL}?q=${query}&page=1&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`)
-
-      .then((response) => response.json())
-      .then((data) =>
-        this.setState({
-          results: data.hits.map((hit) => {
-            return {
-              id: hit.id,
-              webformatURL: hit.webformatURL,
-              tags: hit.tags,
-              largeImageURL: hit.largeImageURL,
-            };
-          }),
-          status: "idle",
-        })
+  componentDidUpdate = (prevProps, prevState) => {
+    if (prevState.query !== this.state.query || prevState.page !== this.state.page) {
+      fetch(
+        `${URL}?q=${this.state.query}&page=${this.state.page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
       )
-      .catch((error) => console.log(error));
-  };
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.hits.length > 0) {
+            this.setState({
+              results: [...this.state.results, ...data.hits.map((hit) => {
+                  return {
+                    id: hit.id,
+                    webformatURL: hit.webformatURL,
+                    tags: hit.tags,
+                    largeImageURL: hit.largeImageURL,
+                  };
+                }),
+              ],
+              status: "idle",
+            });
+          } else {
+            this.setState ({status: "idle"});
+            alert("No more results");
+            return;
+          }
+        })
+        .catch((error) => console.log(error));
+    }
+  }
+
+  submitHandle = (query) => {
+    if (query.trim() === this.state.query) { return }
+    this.setState({ query, results: [], page:1, status: "pending" });};
 
   onLoadMoreHandle = () => {
-    this.setState({ status: "pending" });
-    fetch(
-      `${URL}?q=${this.state.query}&page=${this.state.page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.hits.length > 0) {
-          this.setState({
-            results: [
-              ...this.state.results,
-              ...data.hits.map((hit) => {
-                return {
-                  id: hit.id,
-                  webformatURL: hit.webformatURL,
-                  tags: hit.tags,
-                  largeImageURL: hit.largeImageURL,
-                };
-              }),
-            ],
-            page: this.state.page + 1,
-            status: "idle",
-          });
-        } else {
-          alert("No more results");
-          return;
-        }
-      })
-      .catch((error) => console.log(error));
-  };
+    this.setState({ page: this.state.page + 1, status: "pending" });};
 
   openModal = ({ bigImg, alt }) => {
     this.setState({
